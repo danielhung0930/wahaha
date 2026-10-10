@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="description" content="互動式數位邏輯學習與練習工具" />
+    <title>邏輯練習室</title>
+    <style>
+      :root {
+        --ink: #ecf0ff;
+        --muted: #a5b0cc;
+        --line: rgba(199, 211, 255, 0.14);
+        --panel: rgba(19, 28, 56, 0.82);
+        --navy: #0b1020;
+        --violet: #8475ff;
+        --mint: #5de0bd;
+        --amber: #ffbf69;
+        --danger: #ff7b89;
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        min-width: 320px;
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% -5%, rgba(115, 98, 255, 0.28), transparent 28rem),
+          radial-gradient(circle at 96% 18%, rgba(49, 205, 172, 0.16), transparent 25rem),
+          var(--navy);
+        font-family: ui-rounded, "SF Pro Rounded", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+        line-height: 1.55;
+      }
+      button, input, textarea { font: inherit; }
+      button { cursor: pointer; }
+      button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(132,117,255,.72); outline-offset: 3px; }
+      .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.04em; }
+      .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; color: #071116; background: var(--mint); border-radius: 11px; box-shadow: 0 8px 24px rgba(93,224,189,.22); }
+      .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9rem; }
+      .status-dot { width: 8px; height: 8px; background: var(--mint); border-radius: 50%; box-shadow: 0 0 0 5px rgba(93,224,189,.12); }
+
+      .hero { display: grid; grid-template-columns: 1.4fr .85fr; gap: 28px; align-items: stretch; padding: 48px 0 28px; }
+      .eyebrow { margin: 0 0 14px; color: var(--mint); font-size: .82rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { max-width: 760px; margin-bottom: 18px; font-size: clamp(2.55rem, 6vw, 5.35rem); line-height: .98; letter-spacing: -.075em; }
+      .hero-copy { max-width: 630px; color: var(--muted); font-size: 1.05rem; }
+      .study-pulse { display: flex; flex-direction: column; justify-content: space-between; padding: 25px; border: 1px solid var(--line); border-radius: 24px; background: linear-gradient(145deg, rgba(31,43,85,.96), rgba(17,26,50,.78)); box-shadow: 0 24px 80px rgba(0,0,0,.18); }
+      .study-pulse small { color: var(--muted); }
+      .pulse-number { margin: 6px 0; font-size: 3.5rem; font-weight: 850; letter-spacing: -.08em; }
+      .progress-track { height: 9px; overflow: hidden; background: rgba(255,255,255,.1); border-radius: 99px; }
+      .progress-track > span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--violet), var(--mint)); border-radius: inherit; transition: width 360ms var(--ease-out); }
+      .pulse-footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 15px; color: var(--muted); font-size: .85rem; }
+
+      .tabs { display: flex; gap: 7px; padding: 6px; margin: 18px 0 30px; overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: rgba(9,14,30,.5); }
+      .tab { flex: 1; min-width: 130px; padding: 11px 16px; color: var(--muted); border: 0; border-radius: 11px; background: transparent; font-weight: 750; transition: color 160ms ease, background 160ms ease, transform 160ms var(--ease-out); }
+      .tab:hover { color: var(--ink); }
+      .tab[aria-selected="true"] { color: #10152a; background: var(--ink); box-shadow: 0 6px 18px rgba(0,0,0,.14); }
+      .tab:active, .button:active, .choice:active, .topic-chip:active { transform: scale(.97); }
+
+      .panel { display: none; padding-bottom: 80px; }
+      .panel.active { display: block; }
+      .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 0 0 18px; }
+      .section-heading h2 { margin: 0; font-size: clamp(1.6rem, 3vw, 2.25rem); letter-spacing: -.05em; }
+      .section-heading p { margin: 0; color: var(--muted); }
+      .grid { display: grid; gap: 15px; }
+      .topic-grid { grid-template-columns: repeat(3, 1fr); }
+      .card { border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 14px 35px rgba(0,0,0,.11); }
+      .topic-card { padding: 22px; transition: transform 220ms var(--ease-out), border-color 220ms ease, background 220ms ease; }
+      .topic-card:hover { transform: translateY(-3px); border-color: rgba(132,117,255,.55); background: rgba(27,39,76,.95); }
+      .topic-tag { display: inline-flex; padding: 4px 9px; color: #c5bcff; border: 1px solid rgba(132,117,255,.3); border-radius: 99px; background: rgba(132,117,255,.11); font-size: .75rem; font-weight: 800; }
+      .topic-card h3 { margin: 16px 0 7px; letter-spacing: -.03em; }
+      .topic-card p { min-height: 50px; margin-bottom: 17px; color: var(--muted); font-size: .93rem; }
+      .topic-chip { padding: 0; color: var(--mint); border: 0; background: none; font-weight: 800; transition: transform 150ms var(--ease-out), color 150ms ease; }
+      .focus-strip { display: grid; grid-template-columns: .75fr 1.25fr; gap: 15px; margin-top: 15px; }
+      .focus-intro { padding: 25px; background: linear-gradient(135deg, rgba(132,117,255,.24), rgba(93,224,189,.11)); }
+      .focus-intro h3 { margin-bottom: 8px; font-size: 1.5rem; letter-spacing: -.05em; }
+      .focus-intro p { margin: 0; color: var(--muted); }
+      .formula-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--line); }
+      .formula { padding: 18px 20px; background: rgba(15,23,46,.92); }
+      .formula strong { display: block; margin-bottom: 5px; color: var(--amber); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.1rem; }
+      .formula span { color: var(--muted); font-size: .88rem; }
+
+      .practice-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); gap: 20px; }
+      .quiz-card, .answer-card, .query-box { padding: 25px; }
+      .step { color: var(--mint); font-size: .8rem; font-weight: 850; letter-spacing: .1em; }
+      .question { margin: 10px 0 20px; font-size: 1.25rem; font-weight: 750; letter-spacing: -.03em; }
+      .choices { display: grid; gap: 10px; }
+      .choice { display: flex; align-items: center; gap: 11px; width: 100%; padding: 13px; color: var(--ink); text-align: left; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.025); transition: transform 150ms var(--ease-out), border-color 150ms ease, background 150ms ease; }
+      .choice:hover { border-color: rgba(132,117,255,.65); background: rgba(132,117,255,.08); }
+      .choice.selected { border-color: var(--violet); background: rgba(132,117,255,.17); }
+      .choice-letter { display: grid; flex: 0 0 auto; place-items: center; width: 27px; height: 27px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; font-size: .8rem; font-weight: 850; }
+      .choice.selected .choice-letter { color: white; border-color: var(--violet); background: var(--violet); }
+      .quiz-actions { display: flex; gap: 10px; margin-top: 20px; }
+      .button { padding: 11px 15px; color: #0a1120; border: 0; border-radius: 12px; background: var(--mint); font-weight: 850; transition: transform 160ms var(--ease-out), filter 160ms ease; }
+      .button:hover { filter: brightness(1.06); }
+      .button.secondary { color: var(--ink); border: 1px solid var(--line); background: transparent; }
+      .feedback { min-height: 23px; margin: 14px 0 0; color: var(--muted); font-size: .92rem; }
+      .feedback.good { color: var(--mint); }
+      .feedback.bad { color: #ff9ea8; }
+      .answer-card { display: flex; flex-direction: column; }
+      .answer-card h3 { margin-bottom: 6px; letter-spacing: -.035em; }
+      .answer-card p { color: var(--muted); font-size: .92rem; }
+      textarea, .query-input { width: 100%; color: var(--ink); border: 1px solid var(--line); border-radius: 13px; background: rgba(5,10,24,.45); }
+      textarea { min-height: 142px; padding: 13px; resize: vertical; }
+      textarea::placeholder, .query-input::placeholder { color: #70809f; }
+      .model-answer { display: none; margin-top: 15px; padding: 14px; color: var(--muted); border-left: 3px solid var(--amber); border-radius: 0 10px 10px 0; background: rgba(255,191,105,.08); font-size: .9rem; }
+      .model-answer.show { display: block; }
+      .mini-score { margin-top: auto; padding-top: 22px; color: var(--muted); font-size: .88rem; }
+      .mini-score strong { color: var(--ink); }
+
+      .query-box { max-width: 800px; margin: 0 auto; text-align: center; }
+      .query-box h2 { margin-bottom: 8px; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.065em; }
+      .query-box > p { color: var(--muted); }
+      .query-form { display: flex; gap: 10px; margin: 24px 0 10px; }
+      .query-input { min-width: 0; padding: 13px 15px; }
+      .query-result { min-height: 88px; margin-top: 18px; padding: 19px; color: var(--muted); text-align: left; border: 1px solid var(--line); border-radius: 16px; background: rgba(8,13,29,.4); }
+      .query-result strong { display: block; margin-bottom: 7px; color: var(--mint); }
+      .prompt-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; text-align: left; }
+      .prompt-row button { padding: 7px 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; background: transparent; font-size: .83rem; transition: color 150ms ease, border-color 150ms ease, transform 150ms var(--ease-out); }
+      .prompt-row button:hover { color: var(--ink); border-color: rgba(132,117,255,.7); }
+
+      .toast { position: fixed; right: 20px; bottom: 20px; z-index: 10; max-width: min(360px, calc(100% - 40px)); padding: 13px 16px; color: #061616; border-radius: 12px; background: var(--mint); box-shadow: 0 15px 40px rgba(0,0,0,.28); opacity: 0; pointer-events: none; transform: translateY(18px); transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); font-weight: 800; }
+      .toast.show { opacity: 1; transform: translateY(0); }
+
+      @media (hover: hover) and (pointer: fine) { .topic-chip:hover { color: #bdf7e7; } }
+      @media (max-width: 760px) { .hero, .practice-layout, .focus-strip { grid-template-columns: 1fr; } .topic-grid { grid-template-columns: 1fr; } .hero { padding-top: 28px; } .formula-list { grid-template-columns: 1fr; } .study-pulse { min-height: 210px; } }
+      @media (max-width: 480px) { .shell { width: min(100% - 24px, 1120px); } .topbar { padding: 16px 0; } .status { font-size: .78rem; } .query-form { flex-direction: column; } .section-heading { align-items: start; flex-direction: column; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } .topic-card:hover { transform: none; } }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">∑</span><span>邏輯練習室</span></div>
+        <div class="status"><span class="status-dot"></span>本機儲存學習進度</div>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Digital Logic · Chapter 2 + 3</p>
+          <h1 id="page-title">把邏輯，<br />練成直覺。</h1>
+          <p class="hero-copy">從真值表、基本邏輯閘，到布林代數與第摩根定理。每次只專注一個小概念，然後立刻用題目確認你真的懂了。</p>
+        </div>
+        <aside class="study-pulse" aria-label="學習進度">
+          <div><small>你的本次進度</small><div class="pulse-number"><span id="progress-number">0</span>%</div><small id="progress-label">先完成一題，開始累積。</small></div>
+          <div><div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div><div class="pulse-footer"><span>目標：完成 12 個任務</span><span id="completed-count">0 / 12</span></div></div>
+        </aside>
+      </section>
+
+      <nav class="tabs" role="tablist" aria-label="學習工具">
+        <button class="tab" id="tab-learn" role="tab" aria-selected="true" aria-controls="learn">重點學習</button>
+        <button class="tab" id="tab-practice" role="tab" aria-selected="false" aria-controls="practice">開始練習</button>
+        <button class="tab" id="tab-ask" role="tab" aria-selected="false" aria-controls="ask">查詢問題</button>
+      </nav>
+
+      <section class="panel active" id="learn" role="tabpanel" aria-labelledby="tab-learn">
+        <div class="section-heading"><div><h2>先建立正確的心智模型</h2><p>每張卡片只放最容易混淆、也最值得記住的一件事。</p></div></div>
+        <div class="grid topic-grid">
+          <article class="card topic-card"><span class="topic-tag">第 2 章</span><h3>真值表</h3><p>先列出所有輸入組合，再逐列決定輸出。兩個輸入，就有 4 種狀態。</p><button class="topic-chip" data-query="真值表怎麼寫？">查詢這個概念 →</button></article>
+          <article class="card topic-card"><span class="topic-tag">第 2 章</span><h3>基本邏輯閘</h3><p>AND 是「全對」、OR 是「任一」、NOT 是「相反」。先理解，再背符號。</p><button class="topic-chip" data-query="AND 和 OR 差別？">查詢這個概念 →</button></article>
+          <article class="card topic-card"><span class="topic-tag">第 2 章</span><h3>XOR 與 XNOR</h3><p>XOR 看不同；XNOR 看相同。這對常用在比較與同位元檢查。</p><button class="topic-chip" data-query="XOR 和 XNOR 是什麼？">查詢這個概念 →</button></article>
+          <article class="card topic-card"><span class="topic-tag">第 3 章</span><h3>布林代數</h3><p>在這裡，＋代表 OR，· 代表 AND，上劃線代表 NOT；不是普通算術。</p><button class="topic-chip" data-query="布林代數的加法和乘法是什麼？">查詢這個概念 →</button></article>
+          <article class="card topic-card"><span class="topic-tag">第 3 章</span><h3>第摩根定理</h3><p>反相進入括號後，OR 和 AND 一定要互換。這是電路化簡的核心捷徑。</p><button class="topic-chip" data-query="第摩根定理怎麼用？">查詢這個概念 →</button></article>
+          <article class="card topic-card"><span class="topic-tag">第 3 章</span><h3>SSOP 與 SPOS</h3><p>SSOP 記錄輸出為 1 的最小項；SPOS 記錄輸出為 0 的最大項。</p><button class="topic-chip" data-query="SSOP 和 SPOS 差別？">查詢這個概念 →</button></article>
+        </div>
+        <div class="focus-strip">
+          <article class="card focus-intro"><p class="eyebrow">Quick recall</p><h3>考前先抽背這四組</h3><p>不是重讀一整章，而是讓大腦主動把規則叫回來。</p></article>
+          <div class="formula-list" aria-label="重要公式">
+            <div class="formula"><strong>A · 1 = A</strong><span>AND 遇到 1，保留原值</span></div>
+            <div class="formula"><strong>A + 0 = A</strong><span>OR 遇到 0，保留原值</span></div>
+            <div class="formula"><strong>Ā + A = 1</strong><span>互補相加，必為 1</span></div>
+            <div class="formula"><strong>overline(A + B) = Ā · B̄</strong><span>第摩根：加變乘、各自反相</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+        <div class="section-heading"><div><h2>練習，而不是猜答案</h2><p>選擇題立即回饋；非選題先自己推理，再決定是否查看提示。</p></div></div>
+        <div class="practice-layout">
+          <article class="card quiz-card">
+            <div class="step" id="quiz-step">選擇題 · 1 / 6</div>
+            <div class="question" id="quiz-question"></div>
+            <div class="choices" id="choices"></div>
+            <div class="quiz-actions"><button class="button" id="check-quiz">確認答案</button><button class="button secondary" id="next-quiz">下一題</button></div>
+            <p class="feedback" id="quiz-feedback" aria-live="polite"></p>
+          </article>
+          <article class="card answer-card">
+            <div class="step">非選擇題</div>
+            <h3>用自己的話解釋</h3>
+            <p>為什麼 NAND 閘可以當成「萬用閘」？請至少說出一種可由 NAND 組成的基本邏輯功能。</p>
+            <textarea id="written-answer" placeholder="先寫下你的推理；不必完美，但要具體。"></textarea>
+            <div class="quiz-actions"><button class="button secondary" id="toggle-model">查看參考方向</button><button class="button" id="save-written">儲存作答</button></div>
+            <div class="model-answer" id="model-answer"><strong>參考方向：</strong>NAND 只靠自己就能組成 NOT、AND、OR；例如把同一輸入接到 NAND 的兩端，可得到 NOT：Ā = A NAND A。這就是它能實現任意邏輯功能的原因。</div>
+            <div class="mini-score">已完成任務：<strong id="practice-completed">0</strong> 個</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="ask" role="tabpanel" aria-labelledby="tab-ask" hidden>
+        <article class="card query-box">
+          <p class="eyebrow">Concept lookup</p>
+          <h2>卡住時，先問一個好問題。</h2>
+          <p>這是本頁教材的概念查詢。輸入關鍵字或完整問題，例如「第摩根定理怎麼用？」</p>
+          <form class="query-form" id="query-form"><input class="query-input" id="query-input" aria-label="輸入問題" placeholder="輸入：XOR 和 OR 有什麼不同？" /><button class="button" type="submit">查詢</button></form>
+          <div class="query-result" id="query-result" aria-live="polite"><strong>從一個概念開始。</strong>輸入關鍵字後，我會從目前的第 2、3 章重點中找出最相關的說明。</div>
+          <div class="prompt-row" aria-label="建議問題"><button type="button" data-prompt="第摩根定理怎麼用？">第摩根定理怎麼用？</button><button type="button" data-prompt="XOR 和 OR 差別？">XOR 和 OR 差別？</button><button type="button" data-prompt="最小項和最大項是什麼？">最小項和最大項是什麼？</button></div>
+        </article>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const quiz = [
+        { q: "二輸入 AND 閘的輸出何時為 1？", a: ["至少一個輸入為 1", "兩個輸入都為 1", "兩個輸入不同", "兩個輸入都為 0"], correct: 1, why: "AND 只有在所有輸入都為 1 時才輸出 1。" },
+        { q: "A = 1、B = 0 時，A XOR B 的輸出是？", a: ["0", "1", "不確定", "取決於輸入順序"], correct: 1, why: "XOR 在兩個輸入不同時輸出 1。" },
+        { q: "下列哪一式符合第摩根定理？", a: ["overline(A + B) = Ā + B̄", "overline(A · B) = Ā · B̄", "overline(A + B) = Ā · B̄", "overline(A · B) = A + B"], correct: 2, why: "外層反相進入後，OR 會變成 AND，且每個變數分別反相。" },
+        { q: "在布林代數中，A + 1 的結果是？", a: ["A", "0", "1", "Ā"], correct: 2, why: "OR 只要有一個輸入為 1，輸出就是 1。" },
+        { q: "最小項（minterm）主要對應真值表中的哪一類列？", a: ["輸出為 1 的列", "輸出為 0 的列", "輸入全為 0 的列", "輸入全為 1 的列"], correct: 0, why: "SSOP 用最小項列出函數輸出為 1 的那些輸入組合。" },
+        { q: "把同一個輸入 A 接到 NAND 的兩個輸入端，輸出為？", a: ["A", "Ā", "1", "0"], correct: 1, why: "A NAND A = overline(A · A) = Ā，因此可以實現 NOT。" }
+      ];
+      const answers = {
+        "真值表": ["真值表會列出所有輸入組合與每一列對應的輸出。若有 n 個輸入，總共有 2ⁿ 列；兩個輸入就是 00、01、10、11 四列。"],
+        "and": ["AND 的意思是「全部條件都成立」。只有所有輸入都是 1，輸出才是 1；A·1=A，A·0=0。"],
+        "or": ["OR 的意思是「至少一個條件成立」。只要有一個輸入為 1，輸出就是 1；A+0=A，A+1=1。"],
+        "xor": ["XOR（互斥或）看輸入是否不同：不同輸出 1，相同輸出 0。OR 則只要有一個 1 就輸出 1，所以 1 OR 1 = 1，但 1 XOR 1 = 0。"],
+        "xnor": ["XNOR（反互斥或）是 XOR 的反相：兩個輸入相同時輸出 1，不同時輸出 0。"],
+        "第摩根": ["第摩根定理有兩句：overline(A+B)=Ā·B̄；overline(A·B)=Ā+B̄。記憶口訣：反相進括號，符號要互換，變數都反相。"],
+        "布林": ["布林代數只用 0 與 1：＋表示 OR、· 表示 AND、上劃線表示 NOT。運算優先序是括號 → NOT → AND → OR。"],
+        "最小項": ["最小項 mᵢ 是包含全部變數的乘積項，對應函數輸出為 1 的列；用 Σ 表示。最大項 Mᵢ 是包含全部變數的和項，對應輸出為 0 的列；用 Π 表示。"],
+        "最大項": ["最大項 Mᵢ 是包含全部變數的和項，對應真值表中輸出為 0 的列；SPOS 使用最大項之積來表示函數。"],
+        "ssop": ["SSOP 是標準最小項之和：列出輸出為 1 的每一列最小項後相加。SPOS 則是標準最大項之積，列出輸出為 0 的每一列最大項後相乘。"],
+        "spos": ["SPOS 是標準最大項之積：找出輸出為 0 的列，再將其最大項相乘。與 SSOP 的關係是互補列集合。"]
+      };
+      const state = JSON.parse(localStorage.getItem("logic-lab-state") || "{\"done\":[],\"written\":\"\"}");
+      let current = 0, selected = null;
+      const $ = (selector) => document.querySelector(selector);
+      const toast = (message) => { const box = $("#toast"); box.textContent = message; box.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => box.classList.remove("show"), 2600); };
+      const save = () => { localStorage.setItem("logic-lab-state", JSON.stringify(state)); updateProgress(); };
+      const task = (key) => { if (!state.done.includes(key)) { state.done.push(key); save(); } };
+      const updateProgress = () => { const count = Math.min(state.done.length, 12); const pct = Math.round(count / 12 * 100); $("#progress-number").textContent = pct; $("#progress-bar").style.width = pct + "%"; $("#completed-count").textContent = count + " / 12"; $("#practice-completed").textContent = count; $("#progress-label").textContent = count === 0 ? "先完成一題，開始累積。" : count === 12 ? "完成了，現在去挑戰錯題。" : "每完成一小步，都在變熟練。"; };
+      const openPanel = (id) => { document.querySelectorAll(".panel").forEach((panel) => { const on = panel.id === id; panel.classList.toggle("active", on); panel.hidden = !on; }); document.querySelectorAll(".tab").forEach((tab) => tab.setAttribute("aria-selected", String(tab.getAttribute("aria-controls") === id))); };
+      document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => openPanel(tab.getAttribute("aria-controls"))));
+      const renderQuiz = () => { const item = quiz[current]; selected = null; $("#quiz-step").textContent = `選擇題 · ${current + 1} / ${quiz.length}`; $("#quiz-question").textContent = item.q; $("#choices").innerHTML = item.a.map((answer, index) => `<button class="choice" type="button" data-index="${index}"><span class="choice-letter">${String.fromCharCode(65 + index)}</span><span>${answer}</span></button>`).join(""); $("#quiz-feedback").textContent = ""; $("#quiz-feedback").className = "feedback"; document.querySelectorAll(".choice").forEach((button) => button.addEventListener("click", () => { selected = Number(button.dataset.index); document.querySelectorAll(".choice").forEach((choice) => choice.classList.toggle("selected", choice === button)); })); };
+      $("#check-quiz").addEventListener("click", () => { const feedback = $("#quiz-feedback"); if (selected === null) { feedback.textContent = "先選一個答案，再確認。"; feedback.className = "feedback bad"; return; } const item = quiz[current]; const correct = selected === item.correct; feedback.textContent = (correct ? "答對了！" : "還差一點。") + item.why; feedback.className = "feedback " + (correct ? "good" : "bad"); task("quiz-" + current); if (correct) toast("答對！已記錄一個學習任務。"); });
+      $("#next-quiz").addEventListener("click", () => { current = (current + 1) % quiz.length; renderQuiz(); });
+      $("#toggle-model").addEventListener("click", () => $("#model-answer").classList.toggle("show"));
+      $("#written-answer").value = state.written || "";
+      $("#save-written").addEventListener("click", () => { state.written = $("#written-answer").value.trim(); if (!state.written) { toast("先寫下一點自己的推理再儲存。 "); return; } task("written"); save(); toast("已儲存作答。隔天再回來修正一次。 "); });
+      const search = (input) => { const term = input.trim().toLowerCase(); const entry = Object.entries(answers).find(([key]) => term.includes(key.toLowerCase())); const result = entry ? entry[1][0] : "這個問題目前沒有精確對應的教材卡。試著加入關鍵字：真值表、AND、OR、XOR、第摩根、最小項、最大項、SSOP 或 SPOS。"; $("#query-result").innerHTML = `<strong>${entry ? "找到相關重點" : "換個關鍵字試試"}</strong>${result}`; if (entry) task("query"); };
+      $("#query-form").addEventListener("submit", (event) => { event.preventDefault(); search($("#query-input").value); });
+      document.querySelectorAll("[data-prompt]").forEach((button) => button.addEventListener("click", () => { $("#query-input").value = button.dataset.prompt; search(button.dataset.prompt); }));
+      document.querySelectorAll("[data-query]").forEach((button) => button.addEventListener("click", () => { $("#query-input").value = button.dataset.query; openPanel("ask"); search(button.dataset.query); }));
+      updateProgress(); renderQuiz();
+    </script>
+  </body>
+</html>
