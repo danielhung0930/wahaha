@@ -1,0 +1,14 @@
+{
+  "name": "邏輯練習室｜數位邏輯學習",
+  "short_name": "邏輯練習室",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf2f8",
+  "theme_color": "#edf2f8",
+  "icons": [
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "./logic-lab-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="160" y2="174" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#68D8FF"/><stop offset=".48" stop-color="#637BFF"/><stop offset="1" stop-color="#9B6BFA"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="40" y1="34" x2="138" y2="146" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF" stop-opacity=".42"/><stop offset="1" stop-color="#FFF" stop-opacity=".08"/>
+    </linearGradient>
+    <filter id="shadow" x="22" y="26" width="140" height="140" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5"/><feOffset dy="5"/><feComponentTransfer><feFuncA type="linear" slope=".24"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="180" height="180" rx="42" fill="url(#bg)"/>
+  <path d="M4 42C38 3 109-10 164 20" stroke="#FFF" stroke-opacity=".23" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="144" cy="40" r="23" fill="#FFF" fill-opacity=".12"/>
+  <g filter="url(#shadow)">
+    <rect x="32" y="38" width="116" height="104" rx="32" fill="url(#glass)" stroke="#FFF" stroke-opacity=".42" stroke-width="2"/>
+    <path d="M71 66v48m0-24h15m0-24h14c21 0 34 10 34 24s-13 24-34 24H86" stroke="#FFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="121" cy="90" r="4" fill="#CFFFF9"/>
+    <path d="M48 78H34m14 24H34m104-12h14" stroke="#DDFBFF" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <path d="m139 118 4.6 9.4L154 132l-10.4 4.6L139 147l-4.6-10.4L124 132l10.4-4.6L139 118Z" fill="#FFF"/>
+</svg>
