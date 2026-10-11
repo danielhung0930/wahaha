@@ -143,6 +143,16 @@ $('#chat-form').onsubmit=e=>{e.preventDefault();const x=$('#chat-input'),q=x.val
 const photoInput=document.createElement('input'),photoButton=document.createElement('button'),photoState=document.createElement('p'),photoPreview=document.createElement('img'),photoAttachment=document.createElement('div'),photoRemove=document.createElement('button');
 const chatForm=$('#chat-form'),photoSend=chatForm.querySelector('[type="submit"]');
 let photoData='',photoLoading=false,photoSending=false,photoVersion=0;
+let heicConverter;
+function loadHeicConverter(){
+  if(typeof window.HeicTo==='function')return Promise.resolve(window.HeicTo);
+  if(!heicConverter)heicConverter=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/heic-to@1.6.5/dist/iife/heic-to.js';script.async=true;
+    script.onload=()=>typeof window.HeicTo==='function'?resolve(window.HeicTo):reject(new Error('heic-load'));
+    script.onerror=()=>{script.remove();reject(new Error('heic-load'))};document.head.append(script);
+  }).catch(error=>{heicConverter=undefined;throw error});
+  return heicConverter;
+}
 photoInput.type='file';photoInput.accept='image/*';photoInput.hidden=true;photoInput.id='question-photo';photoButton.type='button';photoButton.className='button secondary';photoButton.textContent='＋ 題目照片';
 photoAttachment.className='photo-attachment';photoAttachment.hidden=true;photoState.setAttribute('role','status');photoState.setAttribute('aria-live','polite');photoPreview.alt='已附上的題目照片';photoPreview.hidden=true;photoRemove.type='button';photoRemove.textContent='×';photoRemove.setAttribute('aria-label','移除題目照片');
 photoAttachment.append(photoPreview,photoState,photoRemove);chatForm.before(photoAttachment);chatForm.prepend(photoInput,photoButton);photoButton.onclick=()=>photoInput.click();
@@ -152,11 +162,15 @@ photoRemove.onclick=clearPhoto;
 photoInput.onchange=async()=>{
   const file=photoInput.files[0];if(!file)return;
   const version=++photoVersion;photoData='';photoLoading=false;updatePhotoControls();photoAttachment.hidden=false;photoPreview.hidden=true;photoPreview.removeAttribute('src');
-  if(file.type&&!file.type.startsWith('image/')){photoState.textContent='請選擇圖片檔。';return}
+  const isHeic=/\.hei[cf]$/i.test(file.name)||/image\/hei[cf]/i.test(file.type);
+  if(file.type&&!file.type.startsWith('image/')&&!isHeic){photoState.textContent='請選擇圖片檔。';return}
   if(file.size>12*1024*1024){photoState.textContent='圖片超過 12MB，請先縮小或裁切題目後重試。';return}
   photoLoading=true;updatePhotoControls();photoState.textContent='正在處理照片，完成後才能送出…';
-  const url=URL.createObjectURL(file);
+  let url;
   try{
+    let blob=file;
+    if(isHeic){photoState.textContent='正在將 iPhone HEIC 照片轉成可辨識的圖片…';const convert=await loadHeicConverter();if(version!==photoVersion)return;blob=await convert({blob:file,type:'image/jpeg',quality:.9});if(version!==photoVersion)return}
+    url=URL.createObjectURL(blob);
     const img=new Image();img.src=url;await img.decode();
     const ratio=Math.min(1,1600/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);
     const context=canvas.getContext('2d');if(!context||!canvas.width||!canvas.height)throw new Error('decode');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(img,0,0,canvas.width,canvas.height);
@@ -165,8 +179,8 @@ photoInput.onchange=async()=>{
     photoData=data;photoPreview.src=data;photoPreview.hidden=false;photoState.textContent='照片已準備好：'+file.name+'。可以直接送出解題。';
   }catch(error){
     if(version!==photoVersion)return;
-    photoData='';photoState.textContent=error.message==='large'?'圖片仍太大，請裁切題目範圍後重試。':'此瀏覽器無法讀取這張照片。HEIC 照片可改用題目截圖或 JPG／PNG。';notice(photoState.textContent);
-  }finally{URL.revokeObjectURL(url);if(version===photoVersion){photoLoading=false;updatePhotoControls()}}
+    photoData='';photoState.textContent=error.message==='large'?'圖片仍太大，請裁切題目範圍後重試。':error.message==='heic-load'?'HEIC 轉檔功能未能載入，請檢查網路再試，或改用題目截圖。':'照片無法轉換或已損壞，請重新選擇照片，或改用題目截圖。';notice(photoState.textContent);
+  }finally{if(url)URL.revokeObjectURL(url);if(version===photoVersion){photoLoading=false;updatePhotoControls()}}
 };
 async function askPhoto(question,imageData){
   const message=add('user',question||'請讀取這張題目照片並帶我解題。'),thumb=document.createElement('img');thumb.className='question-photo';thumb.alt='已傳送給助教的題目照片';thumb.src=imageData;message.append(thumb);
