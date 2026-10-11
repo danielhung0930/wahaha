@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.19.0/dist/katex.min.css" crossorigin="anonymous">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#edf2f8"><meta name="color-scheme" content="light dark"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="邏輯練習室"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=20261011"><link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20261011"><link rel="manifest" href="./manifest.webmanifest?v=20261011"><title>邏輯練習室</title>
 <style>
@@ -62,6 +63,9 @@ body.mobile-preview .shell{width:min(430px,calc(100% - 24px));max-width:430px}bo
 <style id="lesson-reading-contrast">.example{color:var(--text)}.wrong-item-actions{flex-wrap:wrap}.wrong-item-actions .wrong-ask{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 32%,var(--glass-edge))}</style>
 <style id="photo-attachments">
 .photo-attachment{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:10px;margin:0 16px 12px;padding:10px;border:1px solid var(--glass-edge);border-radius:18px;background:var(--glass-subtle);color:var(--text)}.photo-attachment[hidden]{display:none}.photo-attachment img{width:64px;height:64px;object-fit:contain;border-radius:10px;background:#fff}.photo-attachment img[hidden]{display:none}.photo-attachment p{margin:0;overflow-wrap:anywhere;font-size:.84rem}.photo-attachment button{min-width:44px;min-height:44px;border:1px solid var(--glass-edge);background:var(--glass-strong);color:var(--text)}.photo-attachment img[hidden]+p{grid-column:1/3}.bubble .question-photo{display:block;max-width:100%;max-height:220px;margin-top:10px;object-fit:contain;border-radius:12px;background:#fff}.ask button:disabled{cursor:wait;opacity:.5}
+</style>
+<style id="tutor-answer-format">
+.bubble.bot.formatted{min-width:0;line-height:1.75;white-space:normal}.formatted>:first-child{margin-top:0}.formatted>:last-child{margin-bottom:0}.formatted p{margin:.7em 0}.formatted h1,.formatted h2,.formatted h3,.formatted h4,.formatted h5,.formatted h6{margin:1.15em 0 .45em;font-size:1.12em;line-height:1.45;letter-spacing:-.02em}.formatted ul,.formatted ol{padding-left:1.5em;margin:.7em 0}.formatted li+li{margin-top:.3em}.formatted hr{border:0;border-top:1px solid var(--line);margin:1.1em 0}.formatted blockquote{margin:.8em 0;padding:.2em .8em;border-left:3px solid var(--accent);color:var(--text)}.formatted pre{max-width:100%;overflow:auto;padding:12px;border-radius:12px;background:var(--glass-subtle)}.formatted code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.9em}.formatted .tutor-table{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;margin:.85em 0;border:1px solid var(--line);border-radius:12px}.formatted table{width:100%;min-width:max-content;border-collapse:collapse;font-size:.9em}.formatted th,.formatted td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}.formatted th{font-weight:700;background:var(--glass-subtle)}.formatted tr:last-child td{border-bottom:0}.formatted .tutor-math{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 1px;vertical-align:middle}.formatted .tutor-math[data-display="true"]{display:block;margin:.8em 0;padding:6px 2px}.formatted .katex{font-size:1.08em}.formatted .katex-display{margin:0}.formatted .katex-display>.katex{text-align:left}
 </style>
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('logic-lab-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch{document.documentElement.dataset.theme='dark'}</script>
 </head>
@@ -136,9 +140,52 @@ function showQ(){const host=$('#session'),item=run.q[run.i];selected=null;if(!it
 function result(){const count=run.q.filter(x=>x.type==='mc').length,pct=Math.round(run.score/Math.max(1,count)*100);S.history.unshift({score:run.score,total:run.q.length});S.history=S.history.slice(0,8);persist();$('#session').innerHTML='<div class="result"><div><p class="eyebrow">這回合完成</p><div class="score-num">'+run.score+'</div><h3>選擇題答對 '+run.score+' 題</h3><p>選擇題正確率 '+pct+'%。把猶豫或錯誤的題目帶到 AI 問答區，請助教用另一種方法解釋。</p><div class="actions" style="justify-content:center"><button class="button" id="again">再來一回</button><button class="button secondary" id="to-ai">去問助教</button></div></div></div>';$('#again').onclick=begin;$('#to-ai').onclick=()=>tab('ask')}
 $('#begin').onclick=begin;document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [m,f]=b.dataset.preset.split(',').map(Number);$('#mc').value=m;$('#free').value=f;$('#total').value=m+f});$('#total').onchange=()=>{const t=+$('#total').value,m=Math.min(+$('#mc').value,t);$('#mc').value=m;$('#free').value=t-m};
 const K=[['or','或閘','OR 規則是至少一個輸入為 1，輸出就是 1。把它想成並聯開關：任一條路通了，燈就亮。它與 XOR 不同，因為 1 OR 1=1，但 1 XOR 1=0。'],['and','及閘','AND 表示所有條件都成立；只有每個輸入為 1，輸出才為 1。可想成卡片有效 AND 密碼正確才能開門。'],['nand','反及','萬用','NAND 是 AND 後反相：Y=<span class="over">A·B</span>。A NAND A 就是 NOT A，因此 NAND 能組成 NOT、AND、OR，這就是萬用閘的原因。'],['nor','反或','NOR 是 OR 後反相：Y=<span class="over">A+B</span>。只有所有輸入是 0 時輸出 1；它和 NAND 一樣是萬用閘。'],['xor','xnor','互斥','XOR 是不同為 1，XNOR 是相同為 1。XOR 常用於差異偵測與加法器，XNOR 常用於相等比較。'],['第摩根','德摩根','demorgan','第摩根定理：<span class="over">A+B</span>=Ā·B̄，<span class="over">A·B</span>=Ā+B̄。口訣是反相進括號、符號互換、變數都反相。'],['最小項','最大項','ssop','spos','最小項對應輸出為 1 的列，用 Σ 與 SSOP；最大項對應輸出為 0 的列，用 Π 與 SPOS。兩者記錄的列集合互補。'],['化簡','布林','化簡時先處理括號與反相，再利用補數律、吸收律與第摩根定理。每一步都應維持等價，必要時可代入 0、1 檢查。']];
+let answerRendererReady;
+function loadAnswerRenderer(){
+  if(window.marked?.Marked&&window.DOMPurify&&window.katex)return Promise.resolve();
+  if(!answerRendererReady)answerRendererReady=Promise.all([
+    ['marked','https://cdn.jsdelivr.net/npm/marked@15.0.12/lib/marked.umd.js'],
+    ['DOMPurify','https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js'],
+    ['katex','https://cdn.jsdelivr.net/npm/katex@0.19.0/dist/katex.min.js'],
+  ].map(([name,src])=>window[name]?Promise.resolve():new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src=src;script.async=true;script.crossOrigin='anonymous';script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error('answer-renderer-load'))};document.head.append(script);
+  }))).then(()=>{if(!window.marked?.Marked||!window.DOMPurify||!window.katex)throw new Error('answer-renderer-load')}).catch(error=>{answerRendererReady=undefined;throw error});
+  return answerRendererReady;
+}
+async function renderTutorReply(element,answer){
+  const source=String(answer||'暫時沒有回覆，請再試一次。');
+  try{
+    await loadAnswerRenderer();
+    const formulas=[];
+    const mathToken=(name,level,pattern)=>({
+      name,level,start:text=>text.search(level==='block'?/\$\$|\\\[/:/\$|\\\[|\\\(/),
+      tokenizer(text){const match=pattern.exec(text);if(!match)return;return{type:name,raw:match[0],text:match.slice(1).find(value=>value!==undefined),display:level==='block'||match[0].startsWith('$$')||match[0].startsWith('\\[')}},
+      renderer(token){const index=formulas.push({text:token.text,display:token.display})-1;return '<span data-tutor-math="'+index+'"></span>'},
+    });
+    const parser=new window.marked.Marked({gfm:true,breaks:true});
+    parser.use({extensions:[
+      mathToken('tutorBlockMath','block',/^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\])(?:\n|$)/),
+      mathToken('tutorInlineMath','inline',/^(?:\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$)/),
+    ]});
+    const fragment=window.DOMPurify.sanitize(parser.parse(source),{
+      RETURN_DOM_FRAGMENT:true,
+      ALLOWED_TAGS:['p','br','strong','em','del','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','hr','pre','code','table','thead','tbody','tr','th','td','a','span'],
+      ALLOWED_ATTR:['href','title','colspan','rowspan','data-tutor-math'],ALLOW_DATA_ATTR:false,
+    });
+    element.replaceChildren(fragment);element.classList.add('formatted');
+    element.querySelectorAll('[data-tutor-math]').forEach(node=>{
+      const formula=formulas[Number(node.getAttribute('data-tutor-math'))];node.removeAttribute('data-tutor-math');if(!formula)return;
+      node.className='tutor-math';node.dataset.display=String(formula.display);
+      window.katex.render(formula.text,node,{displayMode:formula.display,throwOnError:false,trust:false,strict:'ignore',maxExpand:1000});
+    });
+    element.querySelectorAll('table').forEach(table=>{const wrap=document.createElement('div');wrap.className='tutor-table';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','助教回答的表格，可左右捲動');table.before(wrap);wrap.append(table)});
+    element.querySelectorAll('a').forEach(link=>{link.rel='noopener noreferrer'});
+    element.scrollIntoView({block:'end',behavior:'smooth'});
+  }catch(error){element.textContent=source;notice('回答已收到，但公式排版未能載入，請重新整理後再試。');console.error('Tutor answer formatting failed',error)}
+}
 function add(role,text,wait=false){const e=document.createElement('div');e.className='bubble '+role+(wait?' wait':'');e.textContent=text;$('#log').append(e);e.scrollIntoView({block:'end',behavior:'smooth'});return e}function localAnswer(q){const s=q.toLowerCase(),hit=K.find(a=>a.slice(0,-1).some(k=>s.includes(k.toLowerCase())));return hit?hit.at(-1):'我已經讀到你的問題。這個公開版會先以本章教材做立即引導；要回覆任何主題、任何解題流程，需要啟用伺服器端 AI 端點。你可以先告訴我是哪一個閘、公式或化簡步驟卡住，我會用目前教材協助你。'}
 function aiErrorMessage(message){if(/daily free allocation|10,000 neurons|免費額度已用完/i.test(message))return'今天的 Cloudflare AI 免費額度已用完，明天會自動恢復；免費方案不會因此自動扣款。';return message||'AI 服務暫時無法回覆，請稍後再試。'}
-async function ask(q){add('user',q);const p=add('bot','正在整理你的問題…',true),endpoint=window.LOGIC_LAB_AI_ENDPOINT||'';try{if(!endpoint)throw new Error('AI 端點尚未設定');const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,context:'數位邏輯教材：真值表、基本閘、布林代數、第摩根、SSOP、SPOS。以繁體中文先解釋再舉例。'})});if(!r.ok)throw new Error(aiErrorMessage((await r.json().catch(()=>({}))).error));const data=await r.json();p.textContent=data.answer||'暫時沒有回覆，請再試一次。';$('#ai-status').textContent='AI 已連線 · 即時回答'}catch(e){p.textContent=e.message==='Failed to fetch'?'目前無法連線 AI，請確認網路後再試。':(e.message||localAnswer(q));$('#ai-status').textContent=/免費額度已用完/.test(p.textContent)?'AI 已連線 · 今日額度已用完':'連線有問題 · 可稍後重試'}finally{p.classList.remove('wait')}}
+async function ask(q){add('user',q);const p=add('bot','正在整理你的問題…',true),endpoint=window.LOGIC_LAB_AI_ENDPOINT||'';try{if(!endpoint)throw new Error('AI 端點尚未設定');const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,context:'數位邏輯教材：真值表、基本閘、布林代數、第摩根、SSOP、SPOS。以繁體中文先解釋再舉例。'})});if(!r.ok)throw new Error(aiErrorMessage((await r.json().catch(()=>({}))).error));const data=await r.json();await renderTutorReply(p,data.answer);$('#ai-status').textContent='AI 已連線 · 即時回答'}catch(e){p.textContent=e.message==='Failed to fetch'?'目前無法連線 AI，請確認網路後再試。':(e.message||localAnswer(q));$('#ai-status').textContent=/免費額度已用完/.test(p.textContent)?'AI 已連線 · 今日額度已用完':'連線有問題 · 可稍後重試'}finally{p.classList.remove('wait')}}
 $('#chat-form').onsubmit=e=>{e.preventDefault();const x=$('#chat-input'),q=x.value.trim();if(q){x.value='';ask(q)}};document.querySelectorAll('.suggest button').forEach(b=>b.onclick=()=>ask(b.textContent));
 const photoInput=document.createElement('input'),photoButton=document.createElement('button'),photoState=document.createElement('p'),photoPreview=document.createElement('img'),photoAttachment=document.createElement('div'),photoRemove=document.createElement('button');
 const chatForm=$('#chat-form'),photoSend=chatForm.querySelector('[type="submit"]');
@@ -189,7 +236,7 @@ async function askPhoto(question,imageData){
     if(!endpoint)throw new Error('AI 端點尚未設定');
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:question||'請讀取這張題目照片，先轉寫題目，再給答案及解題步驟。',imageData,context:'數位邏輯：真值表、基本閘、布林代數、第摩根、SSOP、SPOS'})});
     const data=await r.json();if(!r.ok)throw new Error(aiErrorMessage(data.error));if(typeof data.answer!=='string'||!data.answer.trim())throw new Error('助教未產生答案，照片已保留，請再送出一次。');
-    pending.textContent=data.answer;$('#ai-status').textContent='AI 已連線 · 照片解題完成';return true;
+    await renderTutorReply(pending,data.answer);$('#ai-status').textContent='AI 已連線 · 照片解題完成';return true;
   }catch(e){pending.textContent=e.message==='Failed to fetch'?'照片未能送達助教，請確認網路後重試。':(e.message||'AI 連線失敗，請稍後再試。');$('#ai-status').textContent=/免費額度已用完/.test(pending.textContent)?'AI 已連線 · 今日額度已用完':'照片已保留 · 可以重試';return false}
   finally{pending.classList.remove('wait')}
 }
