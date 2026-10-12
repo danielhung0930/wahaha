@@ -122,7 +122,72 @@ const FREE=[
 ['hard','比較「真值表建構 SSOP」與「布林代數化簡」的目的。','SSOP 完整表示原函數；化簡則在功能不變下減少邏輯式與實作所需閘數。']
 ];
 L.forEach(a=>{for(const i of [5,6,7])a[i]=mathMarkup(a[i])});MC.forEach(a=>{a[2]=a[2].map(mathMarkup)});FREE.forEach(a=>{a[2]=mathMarkup(a[2])});
-const S=localStorage.getItem('logic-lab-session')?{learned:[],history:[]}:JSON.parse(localStorage.getItem('logic-lab-v3')||'{"learned":[],"history":[]}');let run=null,selected=null;const $=x=>document.querySelector(x);const shuffle=a=>[...a].sort(()=>Math.random()-.5);
+// Stable problem IDs keep the same mathematical problem out of both question types in one round.
+MC[1][5]='gate:OR:1:0';MC[2][5]='gate:XOR:1:1';MC[9][5]='gate:NAND:0:1';MC[13][5]='minterm:3:5';
+FREE[0][5]='compare:AND:OR';FREE[1][5]='compare:XOR:XNOR';
+function questionId(question,type){return question[5]||type+':'+question[0]+':'+question[1]}
+function addPracticeQuestion(bank,question,id){
+  if(bank.some(item=>questionId(item,bank===MC?'mc':'free')===id))return;
+  if(bank===MC){const offset=[...id].reduce((sum,char)=>sum+char.charCodeAt(0),0)%question[2].length;question[2]=[...question[2].slice(offset),...question[2].slice(0,offset)];question[3]=(question[3]-offset+question[2].length)%question[2].length}
+  question[5]=id;bank.push(question);
+}
+const practiceGates=[
+  ['AND','及閘',(a,b)=>a&b,'所有輸入都是 1 時才輸出 1。'],
+  ['OR','或閘',(a,b)=>a|b,'至少一個輸入為 1 就輸出 1。'],
+  ['NAND','反及閘',(a,b)=>1-(a&b),'先做 AND，再將輸出反相。'],
+  ['NOR','反或閘',(a,b)=>1-(a|b),'先做 OR，再將輸出反相。'],
+  ['XOR','互斥或閘',(a,b)=>a^b,'兩個輸入不同時輸出 1。'],
+  ['XNOR','反互斥或閘',(a,b)=>1-(a^b),'兩個輸入相同時輸出 1。'],
+];
+practiceGates.forEach(([gate,label,evaluate,rule])=>{
+  for(let a=0;a<=1;a++)for(let b=0;b<=1;b++){
+    const id='gate:'+gate+':'+a+':'+b,reference=rule+'這組輸入的輸出是 '+evaluate(a,b)+'。';
+    addPracticeQuestion(MC,['base','已知 A='+a+'、B='+b+'，'+label+' '+gate+' 的輸出 Y 是？',['0','1'],evaluate(a,b),reference],id);
+    addPracticeQuestion(FREE,['base','輸入 A='+a+'、B='+b+' 的 '+label+' '+gate+'，請自行算出 Y，並解釋你使用的判斷規則。',reference],id);
+  }
+  const rows=[0,1,2,3].map(value=>{const a=value>>1,b=value&1;return '('+a+','+b+') → '+evaluate(a,b)}).join('；');
+  addPracticeQuestion(FREE,['base','請寫出二輸入 '+label+' '+gate+' 的完整真值表，並說明判斷規則。',rows+'。'+rule],'truth-table:'+gate);
+});
+for(let i=0;i<practiceGates.length;i++)for(let j=i+1;j<practiceGates.length;j++){
+  const [first,firstLabel,firstValue]=practiceGates[i],[second,secondLabel,secondValue]=practiceGates[j];
+  const reference=[0,1,2,3].map(value=>{const a=value>>1,b=value&1;return '('+a+','+b+') 時，'+first+'='+firstValue(a,b)+'，'+second+'='+secondValue(a,b)}).join('；');
+  addPracticeQuestion(FREE,['base','比較 '+firstLabel+' '+first+' 與 '+secondLabel+' '+second+'：哪些輸入組合會得到不同輸出？請逐列說明。',reference+'。不同輸出代表兩個閘的邏輯功能不同。'],'compare:'+first+':'+second);
+}
+const overTerm=variable=>'<span class="over">'+variable+'</span>';
+const subIndex=value=>String(value).replace(/\d/g,digit=>'₀₁₂₃₄₅₆₇₈₉'[Number(digit)]);
+function standardTerm(value,count,maxterm){const bits=value.toString(2).padStart(count,'0');return'ABCD'.slice(0,count).split('').map((variable,index)=>bits[index]===(maxterm?'1':'0')?overTerm(variable):variable).join(maxterm?' + ':' · ')}
+for(const count of [3,4])for(let value=0;value<2**count;value++)for(const maxterm of [false,true]){
+  const difficulty=count===3?'mix':'hard',bits=value.toString(2).padStart(count,'0'),variables='ABCD'.slice(0,count).split('').join(','),label=maxterm?'最大項':'最小項',symbol=maxterm?'M':'m',term=standardTerm(value,count,maxterm);
+  const prompt='('+variables+')=('+bits.split('').join(',')+')，對應的'+label+' '+symbol+subIndex(value)+' 是？';
+  const rule=maxterm?'最大項：0 對應原變數，1 對應反相變數，以 OR 相加，讓這一列的值為 0。':'最小項：1 對應原變數，0 對應反相變數，以 AND 相乘，讓這一列的值為 1。';
+  const id=(maxterm?'maxterm':'minterm')+':'+count+':'+value;
+  addPracticeQuestion(MC,[difficulty,prompt,[value,value^1,value^2,value^4].map(index=>standardTerm(index,count,maxterm)),0,rule+'正確式子是 '+term+'。'],id);
+  addPracticeQuestion(FREE,[difficulty,'請推導：'+prompt+'逐一說明每個變數是否反相。',rule+'正確式子是 '+term+'。'],id);
+}
+const practiceCircuits=[
+  ['mix','(A + B) · C',(a,b,c)=>(a|b)&c],
+  ['mix','A + B · C',(a,b,c)=>a|(b&c)],
+  ['hard',overTerm('A · B')+' + C',(a,b,c)=>(1-(a&b))|c],
+  ['hard',overTerm('(A + B) · C'),(a,b,c)=>1-((a|b)&c)],
+  ['hard','A ⊕ (B · C)',(a,b,c)=>a^(b&c)],
+  ['hard',overTerm('A + B')+' · '+overTerm('C'),(a,b,c)=>(1-(a|b))&(1-c)],
+];
+practiceCircuits.forEach(([difficulty,formula,evaluate],index)=>{
+  const rows=[];
+  for(let value=0;value<8;value++){
+    const a=value>>2,b=(value>>1)&1,c=value&1,answer=evaluate(a,b,c);rows.push(''+a+b+c+' → '+answer);
+    addPracticeQuestion(MC,[difficulty,'已知 A='+a+'、B='+b+'、C='+c+'，F = '+formula+' 的輸出是？',['0','1'],answer,'先處理括號、AND 與反相，再處理 OR／XOR；代入這組輸入可得 F='+answer+'。'],'circuit:'+index+':'+value);
+  }
+  addPracticeQuestion(FREE,[difficulty,'為 F = '+formula+' 建立三變數真值表，並說明運算順序。',rows.join('；')+'。先算括號、反相與 AND，再算 OR／XOR。'],'circuit-table:'+index);
+});
+function indexSet(mask){return Array.from({length:8},(_,index)=>index).filter(index=>mask&(1<<index)).join(',')}
+for(const mask of [1,3,5,9,15,21,37,51,60,85,102,105,120,135,150,165,170,204,225,254]){
+  const complement=mask^255,correct='ΠM('+indexSet(complement)+')',question='三變數 F = Σm('+indexSet(mask)+')，等價的 SPOS 是？',rule='在 0～7 的完整編號中，找出沒有出現在 Σm 的編號，即得 '+correct+'。';
+  addPracticeQuestion(MC,['hard',question,[complement,complement^1,complement^2,complement^4].map(value=>value===0?'1（常數函數）':'ΠM('+indexSet(value)+')'),0,rule],'ssop-spos:'+mask);
+  addPracticeQuestion(FREE,['hard','請將 F = Σm('+indexSet(mask)+') 轉為 SPOS，列出所有輸出為 0 的編號並說明原因。',rule],'ssop-spos:'+mask);
+}
+const S=localStorage.getItem('logic-lab-session')?{learned:[],history:[]}:JSON.parse(localStorage.getItem('logic-lab-v3')||'{"learned":[],"history":[]}');let run=null,selected=null;const $=x=>document.querySelector(x);
+function shuffle(array){const copy=[...array];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]]}return copy}
 function notice(s){const t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(notice.t);notice.t=setTimeout(()=>t.classList.remove('show'),2500)}function persist(){localStorage.setItem('logic-lab-v3',JSON.stringify(S))}
 function progress(){const n=S.learned.length,p=Math.round(n/L.length*100);$('#pct').textContent=p;$('#bar').style.transform='scaleX('+p/100+')';$('#progress-count').textContent=n+' / '+L.length;$('#progress-text').textContent=n===0?'先開啟一個重點開始吧。':n===L.length?'全部完成，去挑戰練習吧！':'每理解一個觀念，就更接近直覺。'}
 function mathMarkup(value){return String(value).replace(/([A-Za-z])[\u0304\u0305]/g,'<span class="over">$1</span>').replace(/[Āā]/g,x=>'<span class="over">'+(x==='Ā'?'A':'a')+'</span>')}
@@ -135,9 +200,34 @@ function addIntroVisual(){const intro=document.createElement('aside');intro.clas
 function renderLessons(){const box=$('#lesson-list');box.innerHTML=L.map((a,i)=>'<details class="lesson" data-id="'+a[0]+'"><summary><span class="no">'+String(i+1).padStart(2,'0')+'</span><span class="lesson-thumb">'+diagramFor(a,true)+'</span><span class="lesson-summary-copy"><span class="lesson-title">'+a[2]+'</span><span class="lesson-sub">'+a[1]+' · '+a[3]+'</span></span><span class="plus">＋</span></summary><div class="lesson-body"><div class="lesson-visual"><div class="lesson-visual-art">'+diagramFor(a)+'</div><div class="visual-copy"><span>本節圖解</span><strong>'+a[3]+'</strong><code>'+FORMULA[a[0]]+'</code></div></div><div><strong>為什麼重要？</strong>'+a[4]+'</div><div><strong>核心規則</strong>'+a[5]+'</div><div class="example"><strong>例子</strong>'+a[6]+'<br><br><strong>常見迷思</strong>'+a[7]+'</div><div class="lesson-end"><span>'+ (S.learned.includes(a[0])?'已標記完成，仍可隨時複習。':'理解後，試著用自己的話重述一次。')+'</span><button class="tiny '+(S.learned.includes(a[0])?'done':'')+'" data-done="'+a[0]+'">'+(S.learned.includes(a[0])?'✓ 已理解':'標記已理解')+'</button></div></div></details>').join('');box.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)focus(L.find(a=>a[0]===d.dataset.id))}));box.querySelectorAll('[data-done]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const id=b.dataset.done;S.learned=S.learned.includes(id)?S.learned.filter(x=>x!==id):[...S.learned,id];persist();progress();renderLessons();notice(S.learned.includes(id)?'已加入學習地圖。':'已取消標記。')}))}
 function tab(id){document.querySelectorAll('.panel').forEach(p=>{const on=p.id===id;p.classList.toggle('active',on);p.hidden=!on});document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.getAttribute('aria-controls')===id))}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>tab(t.getAttribute('aria-controls'))));$('#start-learn').addEventListener('click',()=>{const x=document.querySelector('.lesson');x.open=true;x.scrollIntoView({block:'center',behavior:'smooth'})});
-function take(a,n){const pool=shuffle(a);return Array.from({length:n},(_,i)=>pool[i%pool.length])}function begin(){let mc=+$('#mc').value,free=+$('#free').value,total=+$('#total').value;if(mc+free!==total){free=Math.max(0,total-mc);$('#free').value=free;notice('已調整為 '+mc+' 題選擇＋'+free+' 題非選。')}if(!mc&&!free)return notice('至少選擇一題。');const d=$('#difficulty').value,match=a=>d==='mix'?a:a.filter(x=>x[0]===d);run={q:shuffle([...take(match(MC).length?match(MC):MC,mc).map(x=>({x,type:'mc'})),...take(match(FREE).length?match(FREE):FREE,free).map(x=>({x,type:'free'}))]),i:0,score:0,done:0};showQ()}
+function take(pool,count,type,excluded=new Set()){
+  const recent=new Map();let order=0;
+  [...S.history].reverse().forEach(attempt=>{if(Array.isArray(attempt?.questions))attempt.questions.forEach(id=>{if(typeof id==='string')recent.set(id,order++)})});
+  const unique=new Map(pool.map(question=>[questionId(question,type),question]));
+  return shuffle([...unique.values()].filter(question=>!excluded.has(questionId(question,type))))
+    .sort((a,b)=>(recent.get(questionId(a,type))??-1)-(recent.get(questionId(b,type))??-1)).slice(0,count);
+}
+function rememberPracticeQuestion(item){
+  if(!run.historyId){run.historyId=crypto.randomUUID();S.history.unshift({id:run.historyId,score:0,total:run.q.length,questions:[],startedAt:Date.now(),completed:false});S.history=S.history.slice(0,100)}
+  const attempt=S.history.find(entry=>entry?.id===run.historyId);if(!attempt)return;
+  const id=questionId(item.x,item.type);if(!attempt.questions.includes(id))attempt.questions.push(id);attempt.score=run.score;persist();
+}
+function begin(){
+  const total=Math.max(1,Math.min(15,Math.trunc(Number($('#total').value)||10)));
+  let mc=Math.max(0,Math.min(total,Math.trunc(Number($('#mc').value)||0))),free=Math.max(0,Math.min(total,Math.trunc(Number($('#free').value)||0)));
+  if(!mc&&!free)return notice('至少選擇一題。');
+  if(mc+free!==total){free=total-mc;notice('已調整為 '+mc+' 題選擇＋'+free+' 題非選。')}
+  const difficulty=$('#difficulty').value,match=bank=>difficulty==='mix'?bank:bank.filter(question=>question[0]===difficulty);
+  const choices=take(match(MC),mc,'mc'),excluded=new Set(choices.map(question=>questionId(question,'mc'))),written=take(match(FREE),free,'free',excluded);
+  $('#mc').value=choices.length;$('#free').value=written.length;
+  run={q:shuffle([...choices.map(x=>({x,type:'mc'})),...written.map(x=>({x,type:'free'}))]),i:0,score:0,done:0};
+  if(!run.q.length)return notice('目前沒有符合設定的題目。');
+  showQ();
+}
 function showQ(){const host=$('#session'),item=run.q[run.i];selected=null;if(!item)return result();const [d,q,answers,c,why]=item.x,mc=item.type==='mc';host.innerHTML='<div class="q-head"><div><div class="q-meta">第 '+(run.i+1)+' / '+run.q.length+' 題</div><div class="track" style="width:165px;margin-top:8px"><span style="transform:scaleX('+run.i/run.q.length+')"></span></div></div><div class="q-score">答對 '+run.score+' · 完成 '+run.done+'</div></div><span class="q-tag">'+(mc?'選擇題':'非選題')+' · '+({base:'基礎',mix:'混合',hard:'挑戰'}[d])+'</span><div class="question">'+q+'</div>'+(mc?'<div class="choices">'+answers.map((x,i)=>'<button class="choice" data-choice="'+i+'"><span class="letter">'+String.fromCharCode(65+i)+'</span>'+x+'</button>').join('')+'</div><div class="actions"><button class="button" id="check">確認答案</button><button class="button secondary" id="skip">跳過</button></div><p class="feedback" id="feedback"></p>':'<textarea class="answer" id="written" placeholder="寫下你的推理；先自行回答，再查看參考方向。"></textarea><div class="actions"><button class="button secondary" id="show-ref">查看參考方向</button><button class="button" id="done-free">我完成了</button></div><div class="ref" id="ref"><strong>參考方向：</strong>'+answers+'</div>');if(mc){host.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>{selected=+b.dataset.choice;host.querySelectorAll('[data-choice]').forEach(x=>x.classList.toggle('selected',x===b))});$('#check').onclick=()=>{const f=$('#feedback');if(selected===null){f.textContent='先選一個答案。';f.className='feedback bad';return}const ok=selected===c;f.textContent=(ok?'答對了！ ':'再想一下。 ')+why;f.className='feedback '+(ok?'good':'bad');if(ok)run.score++;run.done++;$('#check').disabled=true;notice(ok?'答對，繼續保持。':'已留下這題，稍後可再回顧。')};$('#skip').onclick=()=>{run.i++;showQ()}}else{$('#show-ref').onclick=()=>$('#ref').classList.toggle('show');$('#done-free').onclick=()=>{run.done++;run.i++;showQ()}}}
-function result(){const count=run.q.filter(x=>x.type==='mc').length,pct=Math.round(run.score/Math.max(1,count)*100);S.history.unshift({score:run.score,total:run.q.length});S.history=S.history.slice(0,8);persist();$('#session').innerHTML='<div class="result"><div><p class="eyebrow">這回合完成</p><div class="score-num">'+run.score+'</div><h3>選擇題答對 '+run.score+' 題</h3><p>選擇題正確率 '+pct+'%。把猶豫或錯誤的題目帶到 AI 問答區，請助教用另一種方法解釋。</p><div class="actions" style="justify-content:center"><button class="button" id="again">再來一回</button><button class="button secondary" id="to-ai">去問助教</button></div></div></div>';$('#again').onclick=begin;$('#to-ai').onclick=()=>tab('ask')}
+const displayPracticeQuestion=showQ;showQ=function(){const item=run?.q[run.i];if(item)rememberPracticeQuestion(item);displayPracticeQuestion()};
+function result(){const count=run.q.filter(x=>x.type==='mc').length,pct=Math.round(run.score/Math.max(1,count)*100),attempt=S.history.find(entry=>entry?.id===run.historyId);if(attempt){attempt.score=run.score;attempt.completed=true;attempt.completedAt=Date.now()}else S.history.unshift({score:run.score,total:run.q.length});S.history=S.history.slice(0,100);persist();$('#session').innerHTML='<div class="result"><div><p class="eyebrow">這回合完成</p><div class="score-num">'+run.score+'</div><h3>選擇題答對 '+run.score+' 題</h3><p>選擇題正確率 '+pct+'%。把猶豫或錯誤的題目帶到 AI 問答區，請助教用另一種方法解釋。</p><div class="actions" style="justify-content:center"><button class="button" id="again">再來一回</button><button class="button secondary" id="to-ai">去問助教</button></div></div></div>';$('#again').onclick=begin;$('#to-ai').onclick=()=>tab('ask')}
+$('#practice .heading p').textContent='共 '+MC.length+' 題選擇題、'+FREE.length+' 題非選題。每回隨機抽題、同回不重複；優先抽未練習或較久以前練過的題目，可自訂難度與題型數量。';
 $('#begin').onclick=begin;document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const [m,f]=b.dataset.preset.split(',').map(Number);$('#mc').value=m;$('#free').value=f;$('#total').value=m+f});$('#total').onchange=()=>{const t=+$('#total').value,m=Math.min(+$('#mc').value,t);$('#mc').value=m;$('#free').value=t-m};
 const K=[['or','或閘','OR 規則是至少一個輸入為 1，輸出就是 1。把它想成並聯開關：任一條路通了，燈就亮。它與 XOR 不同，因為 1 OR 1=1，但 1 XOR 1=0。'],['and','及閘','AND 表示所有條件都成立；只有每個輸入為 1，輸出才為 1。可想成卡片有效 AND 密碼正確才能開門。'],['nand','反及','萬用','NAND 是 AND 後反相：Y=<span class="over">A·B</span>。A NAND A 就是 NOT A，因此 NAND 能組成 NOT、AND、OR，這就是萬用閘的原因。'],['nor','反或','NOR 是 OR 後反相：Y=<span class="over">A+B</span>。只有所有輸入是 0 時輸出 1；它和 NAND 一樣是萬用閘。'],['xor','xnor','互斥','XOR 是不同為 1，XNOR 是相同為 1。XOR 常用於差異偵測與加法器，XNOR 常用於相等比較。'],['第摩根','德摩根','demorgan','第摩根定理：<span class="over">A+B</span>=Ā·B̄，<span class="over">A·B</span>=Ā+B̄。口訣是反相進括號、符號互換、變數都反相。'],['最小項','最大項','ssop','spos','最小項對應輸出為 1 的列，用 Σ 與 SSOP；最大項對應輸出為 0 的列，用 Π 與 SPOS。兩者記錄的列集合互補。'],['化簡','布林','化簡時先處理括號與反相，再利用補數律、吸收律與第摩根定理。每一步都應維持等價，必要時可代入 0、1 檢查。']];
 let answerRendererReady;
